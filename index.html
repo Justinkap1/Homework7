@@ -1,0 +1,187 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Lights Out!</title>
+    <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
+    <script src="https://code.jquery.com/jquery-3.5.1.min.js"></script>
+    <style>
+        tr td{
+            border: 1px solid black;
+            width: 75px;
+            height: 75px;
+            cursor: pointer;
+        }
+        .lit-cell{
+            background-color: yellow;
+        }
+        #lights-table {
+            margin: auto;
+        }
+        .winner{
+            text-align: center;
+            font-weight: bolder;
+            font-size: larger;
+            display: none;
+        }
+        .center-button{
+            display: flex;
+            justify-content: center;
+        }
+    </style>
+    <script>
+        var gameWon = false;
+        var gameRows = 0;
+        var gameCols = 0;
+
+        function clearTable() {
+            $("#lights-table").empty();
+        }
+
+        function startGame(){
+            gameWon = false;
+            $(document).ready(function(){
+                $(".winner").css("display", "none");
+            });
+
+            event.preventDefault();
+            clearTable();
+
+            var rows = $("#rows").val();
+            var cols = $("#columns").val();
+
+            gameRows = rows;
+            gameCols = cols;
+
+            var table = $("#lights-table");
+            for (let i = 0; i < rows; i++) {
+                var newRow = $("<tr></tr>");
+                for (let j = 0; j < cols; j++) {
+                    var newCell = $("<td></td>");
+                    newRow.append(newCell);
+                    }
+                table.append(newRow);
+            }
+
+            $.ajax({
+                url: 'setup.php',
+                method: 'GET',
+                data: { rows: rows, columns: cols },
+                dataType: 'json',
+                success: function (data) {
+                    var startingPositionsArray = data.startingPositions;
+
+                    for (var i = 0; i < startingPositionsArray.length; i++) {
+                        var position = startingPositionsArray[i];
+                        var rowIndex = position[0];
+                        var colIndex = position[1];
+                        var cell = table[0].rows[rowIndex].cells[colIndex];
+                        $(cell).addClass("lit-cell");
+                    }
+                },
+                error: function (error) {
+                    console.error('Error:', error);
+                }
+            });
+        }
+
+        function toggleNeighbors(row, col){
+            var table = $("#lights-table");
+            var cell = table[0].rows[row].cells[col];
+            if ($(cell).hasClass("lit-cell")){
+                $(cell).removeClass("lit-cell");
+            }
+            else{
+                $(cell).addClass("lit-cell");
+            }
+        }
+
+        function checkWin() {
+            var allLightsOn = true;
+            $("tr td").each(function () {
+                if ($(this).hasClass("lit-cell")) {
+                    allLightsOn = false;
+                    return false;
+                }
+            });
+            return allLightsOn;
+        }
+
+        $(document).ready(function(){
+
+            $("#lights-table").on("click", "tr td", function () {
+            //console.log("Cell clicked!");
+                if (gameWon === true){
+                    return;
+                }
+                var count = 0;
+
+                var row = $(this).parent().index();
+                var col = $(this).index();
+
+                //current cell
+                if ($(this).hasClass("lit-cell")){
+                    $(this).removeClass("lit-cell");
+                }
+                else{
+                    $(this).addClass("lit-cell");
+                }
+
+                if (row-1 >= 0){
+                    toggleNeighbors(row-1, col);
+                }
+                if (row+1 < gameRows){
+                    toggleNeighbors(row+1, col);
+                }
+                if (col-1 >= 0){
+                    toggleNeighbors(row, col-1);
+                }   
+                if (col+1 < gameCols){
+                    toggleNeighbors(row, col+1);
+                }
+
+                var check = checkWin();
+                if (check === true){
+                    $(".winner").css("display", "block");
+                    gameWon = true;
+                }
+
+            });
+        });
+
+    </script>
+
+</head>
+<body>
+    <div class="container mt-5">
+        <form name="gameForm">
+            <div class="form-group">
+                <label for="rows">Number of Rows:</label>
+                <input type="number" class="form-control" id="rows" name="rows" min="1" required>
+            </div>
+
+            <div class="form-group">
+                <label for="columns">Number of Columns:</label>
+                <input type="number" class="form-control" id="columns" name="columns" min="1" required>
+            </div>
+            <div class="center-button">
+                <button type="submit" class="btn btn-primary" onclick="startGame();">Start Game</button>
+            </div>
+        </form>
+    </div>
+    <div class="winner">You won!</div>
+    <div class="container mt-3">
+        <div class="row justify-content-center">
+            <div class="col-12">
+                <table id="lights-table">
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/@popperjs/core@2.9.2/dist/umd/popper.min.js"></script>
+    <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.min.js"></script>
+
+</body>
+</html>
